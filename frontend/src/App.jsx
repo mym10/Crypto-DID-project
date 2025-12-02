@@ -37,14 +37,36 @@ function App() {
   }, [isConnected]);
 
   // CHECK IF DID EXISTS BEFORE REGISTER
+  // async function checkDidExists() {
+  //   const result = await readContract(wagmiConfig, {
+  //     address: CONTRACT_ADDRESS,
+  //     abi: DIDRegistry.abi,
+  //     functionName: "resolveDID",
+  //     args: [address],
+  //   });
+  //   return result[0] !== ""; // CID exists -> DID exists
+  // }
   async function checkDidExists() {
-    const result = await readContract(wagmiConfig, {
-      address: CONTRACT_ADDRESS,
-      abi: DIDRegistry.abi,
-      functionName: "resolveDID",
-      args: [address],
-    });
-    return result[0] !== ""; // CID exists -> DID exists
+    try {
+      const result = await readContract(wagmiConfig, {
+        address: CONTRACT_ADDRESS,
+        abi: DIDRegistry.abi,
+        functionName: "resolveDID",
+        args: [address],
+      });
+
+      return result && result[0] !== "";
+    } catch (err) {
+      const msg = err?.message || "";
+      const cause = err?.cause?.message || "";
+
+      if (msg.includes("DID not found") || cause.includes("DID not found")) {
+        return false; // DID does NOT exist → allowed to CREATE
+      }
+
+      console.error("Unexpected error while checking DID:", err);
+      return false;
+    }
   }
 
   // REGISTER DID
